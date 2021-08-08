@@ -151,8 +151,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\io\joystick.cpp" />
+    <ClCompile Include="src\io\keyboard.cpp" />
     <ClCompile Include="lib\glad.c" />
     <ClCompile Include="lib\stb.cpp" />
+    <ClCompile Include="src\io\mouse.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>
@@ -163,6 +166,9 @@
     <None Include="assets\vertex_core.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\io\joystick.h" />
+    <ClInclude Include="src\io\keyboard.h" />
+    <ClInclude Include="src\io\mouse.h" />
     <ClInclude Include="src\Shader.h" />
   </ItemGroup>
   <ItemGroup>
