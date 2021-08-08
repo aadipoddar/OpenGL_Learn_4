@@ -1,15 +1,20 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <stb/stb_image.h>
 
 #include <fstream>
 #include <sstream>
 #include <streambuf>
 #include <string>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "Shader.h"
+
 void framebuffer_size_callback ( GLFWwindow * window , int width , int height );
 void processInput ( GLFWwindow * window );
-std::string loadShaderSrc ( const char * filename );
 
 int main ( )
 {
@@ -50,93 +55,15 @@ int main ( )
 
 	glfwSetFramebufferSizeCallback ( window , framebuffer_size_callback );
 
-	// compile vertex shader
-	unsigned int vertexShader;
-	vertexShader = glCreateShader ( GL_VERTEX_SHADER );
-	std::string vertShaderSrc = loadShaderSrc ( "assets/vertex_core.glsl" );
-	const GLchar * vertShader = vertShaderSrc.c_str ( );
-	glShaderSource ( vertexShader , 1 , &vertShader , NULL );
-	glCompileShader ( vertexShader );
-
-	// catch error
-	glGetShaderiv ( vertexShader , GL_COMPILE_STATUS , &success );
-	if ( !success )
-	{
-		glGetShaderInfoLog ( vertexShader , 512 , NULL , infoLog );
-		std::cout << "Error with vertex shader comp.:" << std::endl << infoLog << std::endl;
-	}
-
-	// compile fragment shader
-	unsigned int fragmentShaders [ 2 ];
-
-	fragmentShaders [ 0 ] = glCreateShader ( GL_FRAGMENT_SHADER );
-	std::string fragShaderSrc = loadShaderSrc ( "assets/fragment_core.glsl" );
-	const GLchar * fragShader = fragShaderSrc.c_str ( );
-	glShaderSource ( fragmentShaders [ 0 ] , 1 , &fragShader , NULL );
-	glCompileShader ( fragmentShaders [ 0 ] );
-
-	// catch error
-	glGetShaderiv ( fragmentShaders [ 0 ] , GL_COMPILE_STATUS , &success );
-	if ( !success )
-	{
-		glGetShaderInfoLog ( fragmentShaders [ 0 ] , 512 , NULL , infoLog );
-		std::cout << "Error with fragment shader comp.:" << std::endl << infoLog << std::endl;
-	}
-
-	fragmentShaders [ 1 ] = glCreateShader ( GL_FRAGMENT_SHADER );
-	fragShaderSrc = loadShaderSrc ( "assets/fragment_core_2.glsl" );
-	fragShader = fragShaderSrc.c_str ( );
-	glShaderSource ( fragmentShaders [ 1 ] , 1 , &fragShader , NULL );
-	glCompileShader ( fragmentShaders [ 1 ] );
-
-	// catch error
-	glGetShaderiv ( fragmentShaders [ 1 ] , GL_COMPILE_STATUS , &success );
-	if ( !success )
-	{
-		glGetShaderInfoLog ( fragmentShaders [ 1 ] , 512 , NULL , infoLog );
-		std::cout << "Error with fragment shader 2 comp.:" << std::endl << infoLog << std::endl;
-	}
-
-	// shader program
-	unsigned int shaderPrograms [ 2 ];
-
-	shaderPrograms [ 0 ] = glCreateProgram ( );
-
-	glAttachShader ( shaderPrograms [ 0 ] , vertexShader );
-	glAttachShader ( shaderPrograms [ 0 ] , fragmentShaders [ 0 ] );
-	glLinkProgram ( shaderPrograms [ 0 ] );
-
-	// catch errors
-	glGetProgramiv ( shaderPrograms [ 0 ] , GL_LINK_STATUS , &success );
-	if ( !success )
-	{
-		glGetProgramInfoLog ( shaderPrograms [ 0 ] , 512 , NULL , infoLog );
-		std::cout << "Linking error:" << std::endl << infoLog << std::endl;
-	}
-
-	shaderPrograms [ 1 ] = glCreateProgram ( );
-
-	glAttachShader ( shaderPrograms [ 1 ] , vertexShader );
-	glAttachShader ( shaderPrograms [ 1 ] , fragmentShaders [ 1 ] );
-	glLinkProgram ( shaderPrograms [ 1 ] );
-
-	// catch errors
-	glGetProgramiv ( shaderPrograms [ 1 ] , GL_LINK_STATUS , &success );
-	if ( !success )
-	{
-		glGetProgramInfoLog ( shaderPrograms [ 1 ] , 512 , NULL , infoLog );
-		std::cout << "Linking error:" << std::endl << infoLog << std::endl;
-	}
-
-	glDeleteShader ( vertexShader );
-	glDeleteShader ( fragmentShaders [ 0 ] );
-	glDeleteShader ( fragmentShaders [ 1 ] );
+	// SHADERS===============================
+	Shader shader ( "assets/vertex_core.glsl" , "assets/fragment_core.glsl" );
 
 	float vertices [ ] = {
-		-0.25f, -0.5f, 0.0f,
-		0.15f, 0.0f, 0.0f,
-		0.0f, 0.5f, 0.0f,
-		0.5f, -0.4f, 0.0f
+		// positions		// colors			// texture coordinates
+		-0.5f, -0.5f, 0.0f,	1.0f, 1.0f, 0.5f,	0.0f, 0.0f,	// bottom left
+		-0.5f, 0.5f, 0.0f,	0.5f, 1.0f, 0.75f,	0.0f, 1.0f,	// top left
+		0.5f, -0.5f, 0.0f,	0.6f, 1.0f, 0.2f,	1.0f, 0.0f,	// bottom right
+		0.5f, 0.5f, 0.0f,	1.0f, 0.2f, 1.0f,	1.0f, 1.0f	// top right
 	};
 	unsigned int indices [ ] = {
 		0, 1, 2, // first triangle
@@ -161,8 +88,82 @@ int main ( )
 	glBufferData ( GL_ELEMENT_ARRAY_BUFFER , sizeof ( indices ) , indices , GL_STATIC_DRAW );
 
 	// set attributes pointers
-	glVertexAttribPointer ( 0 , 3 , GL_FLOAT , GL_FALSE , 3 * sizeof ( float ) , ( void * ) 0 );
+	// position
+	glVertexAttribPointer ( 0 , 3 , GL_FLOAT , GL_FALSE , 8 * sizeof ( float ) , ( void * ) 0 );
 	glEnableVertexAttribArray ( 0 );
+	// color
+	glVertexAttribPointer ( 1 , 3 , GL_FLOAT , GL_FALSE , 8 * sizeof ( float ) , ( void * ) ( 3 * sizeof ( float ) ) );
+	glEnableVertexAttribArray ( 1 );
+	// texture coordinate attribute
+	glVertexAttribPointer ( 2 , 2 , GL_FLOAT , GL_FALSE , 8 * sizeof ( float ) , ( void * ) ( 6 * sizeof ( float ) ) );
+	glEnableVertexAttribArray ( 2 );
+
+	// TEXTURES_____________________________________
+
+	// generate texture
+	unsigned int texture1 , texture2;
+
+	glGenTextures ( 1 , &texture1 );
+	glBindTexture ( GL_TEXTURE_2D , texture1 );
+
+	// image wrap (s, t, r) = (x, y, z)
+	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_REPEAT );
+	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_REPEAT );
+
+	// border color
+	float borderColor [ ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv ( GL_TEXTURE_2D , GL_TEXTURE_BORDER_COLOR , borderColor );
+
+	// image filtering
+	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR ); // scale up -> blend colors
+	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_NEAREST );
+
+	// load image 1
+	int width , height , nChannels;
+	stbi_set_flip_vertically_on_load ( true );
+	unsigned char * data = stbi_load ( "assets/image1.jpg" , &width , &height , &nChannels , 0 );
+
+	if ( data )
+	{
+		glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGB , width , height , 0 , GL_RGB , GL_UNSIGNED_BYTE , data );
+		glGenerateMipmap ( GL_TEXTURE_2D );
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+
+	stbi_image_free ( data );
+
+	glGenTextures ( 1 , &texture2 );
+	glBindTexture ( GL_TEXTURE_2D , texture2 );
+
+	// load image 2
+	data = stbi_load ( "assets/image2.png" , &width , &height , &nChannels , 0 );
+
+	if ( data )
+	{
+		// RGBA because png
+		glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , width , height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , data );
+		glGenerateMipmap ( GL_TEXTURE_2D );
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+
+	stbi_image_free ( data );
+
+	shader.activate ( );
+	shader.setInt ( "texture1" , 0 );
+	shader.setInt ( "texture2" , 1 );
+
+	// transformation
+	/*glm::mat4 trans = glm::mat4(1.0f);
+	trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	trans = glm::scale(trans, glm::vec3(0.5f, 1.5f, 0.5f));
+	shader.activate();
+	shader.setMat4("transform", trans);*/
 
 	while ( !glfwWindowShouldClose ( window ) )
 	{
@@ -173,14 +174,31 @@ int main ( )
 		glClearColor ( 0.2f , 0.3f , 0.3f , 1.0f );
 		glClear ( GL_COLOR_BUFFER_BIT );
 
+		// bind texture
+		glActiveTexture ( GL_TEXTURE0 );
+		glBindTexture ( GL_TEXTURE_2D , texture1 );
+		glActiveTexture ( GL_TEXTURE1 );
+		glBindTexture ( GL_TEXTURE_2D , texture2 );
+
 		// draw shapes
 		glBindVertexArray ( VAO );
 		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		glUseProgram ( shaderPrograms [ 0 ] );
-		glDrawElements ( GL_TRIANGLES , 3 , GL_UNSIGNED_INT , 0 );
+		shader.activate ( );
+		// set color
+		//float timeValue = glfwGetTime();
+		//float blueValue = (sin(timeValue) / 2.0f) + 0.5f;
+		//shader.set4Float("ourColor", 0.0f, 0.0f, blueValue, 1.0f);
+		//trans = glm::rotate(trans, glm::radians(timeValue / 100), glm::vec3(0.1f, 0.1f, 0.1f));
+		//shader.setMat4("transform", trans);
 
-		glUseProgram ( shaderPrograms [ 1 ] );
-		glDrawElements ( GL_TRIANGLES , 3 , GL_UNSIGNED_INT , ( void * ) ( 3 * sizeof ( float ) ) );
+		glDrawElements ( GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0 );
+		//trans = glm::translate(trans, glm::vec3(0.5f, 0.5f, 0.0f));
+		//shader.setMat4("transform", trans);
+		// draw second rectangle
+		/*glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		trans = glm::translate(trans, glm::vec3(-0.5f, -0.5f, 0.0f));
+		shader.setMat4("transform", trans);*/
+
 		glBindVertexArray ( 0 );
 
 		// send new frame to window
@@ -207,28 +225,4 @@ void processInput ( GLFWwindow * window )
 	{
 		glfwSetWindowShouldClose ( window , true );
 	}
-}
-
-std::string loadShaderSrc ( const char * filename )
-{
-	std::ifstream file;
-	std::stringstream buf;
-
-	std::string ret = "";
-
-	file.open ( filename );
-
-	if ( file.is_open ( ) )
-	{
-		buf << file.rdbuf ( );
-		ret = buf.str ( );
-	}
-	else
-	{
-		std::cout << "Could not open " << filename << std::endl;
-	}
-
-	file.close ( );
-
-	return ret;
 }
