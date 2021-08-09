@@ -1,383 +1,353 @@
+/*
+    CODE
+    ENGINE (Scene)
+    OPENGL
+    GPU
+*/
+
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stb/stb_image.h>
 
-#include <fstream>
-#include <sstream>
-#include <streambuf>
 #include <string>
+#include <vector>
+#include <stack>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
-#include "Shader.h"
+#include "graphics/memory/framememory.hpp"
+#include "graphics/memory/uniformmemory.hpp"
+
+#include "graphics/models/cube.hpp"
+#include "graphics/models/lamp.hpp"
+#include "graphics/models/gun.hpp"
+#include "graphics/models/sphere.hpp"
+#include "graphics/models/box.hpp"
+#include "graphics/models/plane.hpp"
+#include "graphics/models/brickwall.hpp"
+
+#include "graphics/objects/model.h"
+
+#include "graphics/rendering/shader.h"
+#include "graphics/rendering/texture.h"
+#include "graphics/rendering/light.h"
+#include "graphics/rendering/cubemap.h"
+#include "graphics/rendering/text.h"
+
+#include "physics/environment.h"
+
 #include "io/keyboard.h"
 #include "io/mouse.h"
 #include "io/joystick.h"
-#include "io/screen.h"
 #include "io/camera.h"
 
-void processInput ( GLFWwindow * window , double deltaTime );
+#include "algorithms/states.hpp"
+#include "algorithms/ray.h"
 
-float mixVal = 0.5f;
+#include "scene.h"
 
-Joystick mainJ ( 0 );
-Camera Camera::defaultCamera ( glm::vec3 ( 0.0f , 0.0f , 3.0f ) );
-Camera Camera::secondary ( glm::vec3 ( 5.0f , 5.0f , 5.0f ) );
-bool Camera::usingDefault = true;
+Scene scene;
 
-double deltaTime = 0.0f; // tme btwn frames
+void processInput(double dt);
+void renderScene(Shader shader);
+
+Camera cam;
+
+//Joystick mainJ(0);
+
+double dt = 0.0f; // tme btwn frames
 double lastFrame = 0.0f; // time of last frame
 
-int main ( )
-{
-	int success;
-	char infoLog [ 512 ];
+Sphere sphere(10);
+//Cube cube(10);
+Lamp lamp(4);
+Brickwall wall;
 
-	std::cout << "Hello, world!" << std::endl;
+std::string Shader::defaultDirectory = "assets/shaders";
 
-	glfwInit ( );
+#include "physics/collisionmesh.h"
 
-	// openGL version 3.3
-	glfwWindowHint ( GLFW_CONTEXT_VERSION_MAJOR , 3 );
-	glfwWindowHint ( GLFW_CONTEXT_VERSION_MINOR , 3 );
+int main() {
+    std::cout << "Hello, OpenGL!" << std::endl;
 
-	glfwWindowHint ( GLFW_OPENGL_PROFILE , GLFW_OPENGL_CORE_PROFILE );
+    // construct scene
+    scene = Scene(3, 3, "OpenGL Tutorial", 1200, 720);
+    // test if GLFW successfully started and created window
+    if (!scene.init()) {
+        std::cout << "Could not open window" << std::endl;
+        scene.cleanup();
+        return -1;
+    }
 
-# ifdef __APPLE__
-	glfwWindowHint ( GLFW_OPENGL_FORWARD_COPMPAT , GL_TRUE );
-#endif
+    // set camera
+    scene.cameras.push_back(&cam);
+    scene.activeCamera = 0;
 
-	GLFWwindow * window = glfwCreateWindow ( Screen::SCR_WIDTH , Screen::SCR_HEIGHT , "OpenGL Tutorial" , NULL , NULL );
-	if ( window == NULL )
-	{ // window not created
-		std::cout << "Could not create window." << std::endl;
-		glfwTerminate ( );
-		return -1;
-	}
-	glfwMakeContextCurrent ( window );
+    // SHADERS===============================
+    Shader::loadIntoDefault("defaultHead.gh");
 
-	if ( !gladLoadGLLoader ( ( GLADloadproc ) glfwGetProcAddress ) )
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		glfwTerminate ( );
-		return -1;
-	}
+    Shader shader(true, "instanced/instanced.vs", "object.fs");
+    Shader boxShader(false, "instanced/box.vs", "instanced/box.fs");
+    
+    Shader dirShadowShader(false, "shadows/dirSpotShadow.vs",
+        "shadows/dirShadow.fs");
+    Shader spotShadowShader(false, "shadows/dirSpotShadow.vs",
+        "shadows/pointSpotShadow.fs");
+    Shader pointShadowShader(false, "shadows/pointShadow.vs",
+        "shadows/pointSpotShadow.fs",
+        "shadows/pointShadow.gs");
 
-	glViewport ( 0 , 0 , 800 , 600 );
+    Shader::clearDefault();
 
-	glfwSetFramebufferSizeCallback ( window , Screen::framebufferSizeCallback );
+    // FONTS===============================
+    TextRenderer font(32);
+    if (!scene.registerFont(&font, "comic", "assets/fonts/comic.ttf")) {
+        std::cout << "Could not load font" << std::endl;
+    }
 
-	glfwSetKeyCallback ( window , Keyboard::keyCallback );
+    // MODELS==============================
+    scene.registerModel(&lamp);
 
-	glfwSetInputMode ( window , GLFW_CURSOR , GLFW_CURSOR_DISABLED ); // disable cursor
-	glfwSetCursorPosCallback ( window , Mouse::cursorPosCallback );
-	glfwSetMouseButtonCallback ( window , Mouse::mouseButtonCallback );
-	glfwSetScrollCallback ( window , Mouse::mouseWheelCallback );
+    scene.registerModel(&wall);
 
-	// SHADERS===============================
-	Shader shader ( "assets/vertex_core.glsl" , "assets/fragment_core.glsl" );
+    scene.registerModel(&sphere);
 
-	glEnable ( GL_DEPTH_TEST );
+    //scene.registerModel(&cube);
 
-	float vertices [ ] = {
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    Box box;
+    box.init();
 
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    // load all model data
+    scene.loadModels();
 
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    // LIGHTS==============================
 
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    // directional light
+    DirLight dirLight(glm::vec3(-0.2f, -0.9f, -0.2f),
+        glm::vec4(0.1f, 0.1f, 0.1f, 1.0f),
+        glm::vec4(0.6f, 0.6f, 0.6f, 1.0f),
+        glm::vec4(0.7f, 0.7f, 0.7f, 1.0f),
+        BoundingRegion(glm::vec3(-20.0f, -20.0f, 0.5f), glm::vec3(20.0f, 20.0f, 50.0f)));
+    scene.dirLight = &dirLight;
 
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    // point lights
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3(1.0f, 1.0f, 0.0f),
+        glm::vec3(0.0f,  15.0f,  0.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3(0.0f,  0.0f, -3.0f)
+    };
 
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-	};
+    glm::vec4 ambient = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+    glm::vec4 diffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+    glm::vec4 specular = glm::vec4(1.0f);
+    float k0 = 1.0f;
+    float k1 = 0.0014f;
+    float k2 = 0.000007f;
 
-	//float vertices[] = {
-	//	// positions		// colors			// texture coordinates
-	//	-0.5f, -0.5f, 0.0f,	1.0f, 1.0f, 0.5f,	0.0f, 0.0f,	// bottom left
-	//	-0.5f, 0.5f, 0.0f,	0.5f, 1.0f, 0.75f,	0.0f, 1.0f,	// top left
-	//	0.5f, -0.5f, 0.0f,	0.6f, 1.0f, 0.2f,	1.0f, 0.0f,	// bottom right
-	//	0.5f, 0.5f, 0.0f,	1.0f, 0.2f, 1.0f,	1.0f, 1.0f	// top right
-	//};
-	unsigned int indices [ ] = {
-		0, 1, 2, // first triangle
-		3, 1, 2  // second triangle
-	};
+    PointLight pointLights[4];
 
-	// VBO, VAO, EBO
-	unsigned int VBO , VAO , EBO;
-	glGenBuffers ( 1 , &VBO );
-	glGenVertexArrays ( 1 , &VAO );
-	//glGenBuffers(1, &EBO);
+    for (unsigned int i = 0; i < 1; i++) {
+        pointLights[i] = PointLight(
+            pointLightPositions[i],
+            k0, k1, k2,
+            ambient, diffuse, specular,
+            0.5f, 50.0f
+        );
+        // create physical model for each lamp
+        scene.generateInstance(lamp.id, glm::vec3(10.0f, 0.25f, 10.0f), 0.25f, pointLightPositions[i]);
+        // add lamp to scene's light source
+        scene.pointLights.push_back(&pointLights[i]);
+        // activate lamp in scene
+        States::activateIndex(&scene.activePointLights, i);
+    }
 
-	// bind VAO
-	glBindVertexArray ( VAO );
+    // spot light
+    SpotLight spotLight(
+        //glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f),
+        cam.cameraPos, cam.cameraFront, cam.cameraUp,
+        glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(20.0f)),
+        1.0f, 0.0014f, 0.000007f,
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f), glm::vec4(1.0f),
+        0.1f, 100.0f
+    );
+    scene.spotLights.push_back(&spotLight);
+    //scene.activeSpotLights = 1; // 0b00000001
 
-	// bind VBO
-	glBindBuffer ( GL_ARRAY_BUFFER , VBO );
-	glBufferData ( GL_ARRAY_BUFFER , sizeof ( vertices ) , vertices , GL_STATIC_DRAW );
+    //scene.generateInstance(cube.id, glm::vec3(20.0f, 0.1f, 20.0f), 100.0f, glm::vec3(0.0f, -3.0f, 0.0f));
+    glm::vec3 cubePositions[] = {
+        { 1.0f, 3.0f, -5.0f },
+        { -7.25f, 2.1f, 1.5f },
+        { -15.0f, 2.55f, 9.0f },
+        { 4.0f, -3.5f, 5.0f },
+        { 2.8f, 1.9f, -6.2f },
+        { 3.5f, 6.3f, -1.0f },
+        { -3.4f, 10.9f, -5.5f },
+        { 0.0f, 11.0f, 0.0f },
+        { 0.0f, 5.0f, 0.0f }
+    };
+    for (unsigned int i = 0; i < 9; i++) {
+        //scene.generateInstance(cube.id, glm::vec3(0.5f), 1.0f, cubePositions[i]);
+    }
 
-	// put index array in EBO
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // instantiate the brickwall plane
+    scene.generateInstance(wall.id, glm::vec3(1.0f), 1.0f, 
+        { 0.0f, 0.0f, 2.0f }, { -1.0f, glm::pi<float>(), 0.0f });
 
-	// set attributes pointers
-	// position
-	glVertexAttribPointer ( 0 , 3 , GL_FLOAT , GL_FALSE , 5 * sizeof ( float ) , ( void * ) 0 );
-	glEnableVertexAttribArray ( 0 );
-	// color
-	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	//glEnableVertexAttribArray(1);
-	// texture coordinate attribute
-	glVertexAttribPointer ( 2 , 2 , GL_FLOAT , GL_FALSE , 5 * sizeof ( float ) , ( void * ) ( 3 * sizeof ( float ) ) );
-	glEnableVertexAttribArray ( 2 );
+    // instantiate instances
+    scene.initInstances();
 
-	// TEXTURES_____________________________________
+    // finish preparations (octree, etc)
+    scene.prepare(box, { shader });
 
-	// generate texture
-	unsigned int texture1 , texture2;
+    // joystick recognition
+    /*mainJ.update();
+    if (mainJ.isPresent()) {
+        std::cout << mainJ.getName() << " is present." << std::endl;
+    }*/
 
-	glGenTextures ( 1 , &texture1 );
-	glBindTexture ( GL_TEXTURE_2D , texture1 );
+    scene.variableLog["time"] = (double)0.0;
 
-	// image wrap (s, t, r) = (x, y, z)
-	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_REPEAT );
-	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_REPEAT );
+    scene.defaultFBO.bind(); // bind default framebuffer
 
-	// border color
-	float borderColor [ ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glTexParameterfv ( GL_TEXTURE_2D , GL_TEXTURE_BORDER_COLOR , borderColor );
+    while (!scene.shouldClose()) {
+        // calculate dt
+        double currentTime = glfwGetTime();
+        dt = currentTime - lastFrame;
+        lastFrame = currentTime;
 
-	// image filtering
-	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR ); // scale up -> blend colors
-	glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_NEAREST );
+        scene.variableLog["time"] += dt;
+        scene.variableLog["fps"] = 1 / dt;
 
-	// load image 1
-	int width , height , nChannels;
-	stbi_set_flip_vertically_on_load ( true );
-	unsigned char * data = stbi_load ( "assets/image1.jpg" , &width , &height , &nChannels , 0 );
+        // update screen values
+        scene.update();
 
-	if ( data )
-	{
-		glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGB , width , height , 0 , GL_RGB , GL_UNSIGNED_BYTE , data );
-		glGenerateMipmap ( GL_TEXTURE_2D );
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
+        // process input
+        processInput(dt);
 
-	stbi_image_free ( data );
+        // activate the directional light's FBO
 
-	glGenTextures ( 1 , &texture2 );
-	glBindTexture ( GL_TEXTURE_2D , texture2 );
+        // remove launch objects if too far
+        for (int i = 0; i < sphere.currentNoInstances; i++) {
+            if (glm::length(cam.cameraPos - sphere.instances[i]->pos) > 250.0f) {
+                scene.markForDeletion(sphere.instances[i]->instanceId);
+            }
+        }
 
-	// load image 2
-	data = stbi_load ( "assets/image2.png" , &width , &height , &nChannels , 0 );
+        //// render scene to dirlight FBO
+        //dirLight.shadowFBO.activate();
+        //scene.renderDirLightShader(dirShadowShader);
+        //renderScene(dirShadowShader);
 
-	if ( data )
-	{
-		// RGBA because png
-		glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , width , height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , data );
-		glGenerateMipmap ( GL_TEXTURE_2D );
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
+        //// render scene to point light FBOs
+        //for (unsigned int i = 0, len = scene.pointLights.size(); i < len; i++) {
+        //    if (States::isIndexActive(&scene.activePointLights, i)) {
+        //        scene.pointLights[i]->shadowFBO.activate();
+        //        scene.renderPointLightShader(pointShadowShader, i);
+        //        renderScene(pointShadowShader);
+        //    }
+        //}
 
-	stbi_image_free ( data );
+        //// render scene to spot light FBOs
+        //for (unsigned int i = 0, len = scene.spotLights.size(); i < len; i++) {
+        //    if (States::isIndexActive(&scene.activeSpotLights, i)) {
+        //        scene.spotLights[i]->shadowFBO.activate();
+        //        scene.renderSpotLightShader(spotShadowShader, i);
+        //        renderScene(spotShadowShader);
+        //    }
+        //}
 
-	shader.activate ( );
-	shader.setInt ( "texture1" , 0 );
-	shader.setInt ( "texture2" , 1 );
+        // render scene normally
+        scene.defaultFBO.activate();
+        scene.renderShader(shader);
+        renderScene(shader);
 
-	// transformation
-	/*glm::mat4 trans = glm::mat4(1.0f);
-	trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	trans = glm::scale(trans, glm::vec3(0.5f, 1.5f, 0.5f));
-	shader.activate();
-	shader.setMat4("transform", trans);*/
+        // render boxes
+        scene.renderShader(boxShader, false);
+        box.render(boxShader);
 
-	mainJ.update ( );
-	if ( mainJ.isPresent ( ) )
-	{
-		std::cout << mainJ.getName ( ) << " is present." << std::endl;
-	}
+        // send new frame to window
+        scene.newFrame(box);
 
-	while ( !glfwWindowShouldClose ( window ) )
-	{
-		// calculate dt
-		double currentTime = glfwGetTime ( );
-		deltaTime = currentTime - lastFrame;
-		lastFrame = currentTime;
+        // clear instances that have been marked for deletion
+        scene.clearDeadInstances();
+    }
 
-		// process input
-		processInput ( window , deltaTime );
-
-		// render
-		glClearColor ( 0.2f , 0.3f , 0.3f , 1.0f );
-		glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-		// bind texture
-		glActiveTexture ( GL_TEXTURE0 );
-		glBindTexture ( GL_TEXTURE_2D , texture1 );
-		glActiveTexture ( GL_TEXTURE1 );
-		glBindTexture ( GL_TEXTURE_2D , texture2 );
-
-		// draw shapes
-		glBindVertexArray ( VAO );
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		shader.activate ( );
-		// set color
-		//float timeValue = glfwGetTime();
-		//float blueValue = (sin(timeValue) / 2.0f) + 0.5f;
-		//shader.set4Float("ourColor", 0.0f, 0.0f, blueValue, 1.0f);
-		//trans = glm::rotate(trans, glm::radians(timeValue / 100), glm::vec3(0.1f, 0.1f, 0.1f));
-		//shader.setMat4("transform", trans);
-
-		shader.setFloat ( "mixVal" , mixVal );
-
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glDrawArrays ( GL_TRIANGLES , 0 , 36 );
-
-		//trans = glm::translate(trans, glm::vec3(0.5f, 0.5f, 0.0f));
-		//shader.setMat4("transform", trans);
-		// draw second rectangle
-		/*glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		trans = glm::translate(trans, glm::vec3(-0.5f, -0.5f, 0.0f));
-		shader.setMat4("transform", trans);*/
-
-		// create transformation
-		glm::mat4 model = glm::mat4 ( 1.0f );
-		glm::mat4 view = glm::mat4 ( 1.0f );
-		glm::mat4 projection = glm::mat4 ( 1.0f );
-		model = glm::rotate ( model , ( float ) glfwGetTime ( ) * glm::radians ( -55.0f ) , glm::vec3 ( 0.5f , 0.5f , 0.5f ) );
-		view = Camera::usingDefault ? Camera::defaultCamera.getViewMatrix ( ) : Camera::secondary.getViewMatrix ( );
-		projection = glm::perspective (
-			glm::radians ( Camera::usingDefault ? Camera::defaultCamera.zoom : Camera::secondary.zoom ) ,
-			( float ) Screen::SCR_WIDTH / ( float ) Screen::SCR_HEIGHT , 0.1f , 100.0f );
-
-		shader.setMat4 ( "model" , model );
-		shader.setMat4 ( "view" , view );
-		shader.setMat4 ( "projection" , projection );
-
-		glBindVertexArray ( 0 );
-
-		// send new frame to window
-		glfwSwapBuffers ( window );
-		glfwPollEvents ( );
-	}
-
-	glDeleteVertexArrays ( 1 , &VAO );
-	glDeleteVertexArrays ( 1 , &VBO );
-	//glDeleteBuffers(1, &EBO);
-
-	glfwTerminate ( );
-	return 0;
+    // clean up objects
+    scene.cleanup();
+    return 0;
 }
 
-void processInput ( GLFWwindow * window , double deltaTime )
-{
-	if ( Keyboard::key ( GLFW_KEY_ESCAPE ) )
-	{
-		glfwSetWindowShouldClose ( window , true );
-	}
+void renderScene(Shader shader) {
+    if (sphere.currentNoInstances > 0) {
+        scene.renderInstances(sphere.id, shader, dt);
+    }
 
-	// change mix value
-	if ( Keyboard::key ( GLFW_KEY_UP ) )
-	{
-		mixVal += .05f;
-		if ( mixVal > 1 )
-		{
-			mixVal = 1.0f;
-		}
-	}
-	if ( Keyboard::key ( GLFW_KEY_DOWN ) )
-	{
-		mixVal -= .05f;
-		if ( mixVal < 0 )
-		{
-			mixVal = 0.0f;
-		}
-	}
+    //scene.renderInstances(cube.id, shader, dt);
 
-	// update camera
-	if ( Keyboard::keyWentDown ( GLFW_KEY_TAB ) )
-	{
-		Camera::usingDefault = !Camera::usingDefault;
-	}
+    scene.renderInstances(lamp.id, shader, dt);
 
-	// move camera
-	CameraDirection direction = CameraDirection::NONE;
+    scene.renderInstances(wall.id, shader, dt);
+}
 
-	if ( Keyboard::key ( GLFW_KEY_W ) )
-	{
-		direction = CameraDirection::FORWARD;
-	}
-	if ( Keyboard::key ( GLFW_KEY_S ) )
-	{
-		direction = CameraDirection::BACKWARD;
-	}
-	if ( Keyboard::key ( GLFW_KEY_D ) )
-	{
-		direction = CameraDirection::RIGHT;
-	}
-	if ( Keyboard::key ( GLFW_KEY_A ) )
-	{
-		direction = CameraDirection::LEFT;
-	}
-	if ( Keyboard::key ( GLFW_KEY_SPACE ) )
-	{
-		direction = CameraDirection::UP;
-	}
-	if ( Keyboard::key ( GLFW_KEY_LEFT_SHIFT ) )
-	{
-		direction = CameraDirection::DOWN;
-	}
+void launchItem(float dt) {
+    RigidBody* rb = scene.generateInstance(sphere.id, glm::vec3(0.1f), 1.0f, cam.cameraPos);
+    if (rb) {
+        // instance generated successfully
+        rb->transferEnergy(25.0f, cam.cameraFront);
+        rb->applyAcceleration(Environment::gravitationalAcceleration);
+    }
+}
 
-	if ( ( int ) direction )
-	{
-		if ( Camera::usingDefault )
-		{
-			Camera::defaultCamera.updateCameraPos ( direction , deltaTime );
-		}
-		else
-		{
-			Camera::secondary.updateCameraPos ( direction , deltaTime );
-		}
-	}
+void emitRay() {
+    Ray r(cam.cameraPos, cam.cameraFront);
+
+    float tmin = std::numeric_limits<float>::max();
+    BoundingRegion* intersected = scene.octree->checkCollisionsRay(r, tmin);
+    if (intersected) {
+        std::cout << "Hits " << intersected->instance->instanceId << " at t = " << tmin << std::endl;
+        scene.markForDeletion(intersected->instance->instanceId);
+    }
+    else {
+        std::cout << "No hit" << std::endl;
+    }
+}
+
+void processInput(double dt) {
+    // process input with cameras
+    scene.processInput(dt);
+
+    // close window
+    if (Keyboard::key(GLFW_KEY_ESCAPE)) {
+        scene.setShouldClose(true);
+    }
+
+    // update flash light
+    if (States::isIndexActive(&scene.activeSpotLights, 0)) {
+        scene.spotLights[0]->position = scene.getActiveCamera()->cameraPos;
+        scene.spotLights[0]->direction = scene.getActiveCamera()->cameraFront;
+        scene.spotLights[0]->up = scene.getActiveCamera()->cameraUp;
+        scene.spotLights[0]->updateMatrices();
+    }
+
+    if (Keyboard::keyWentDown(GLFW_KEY_L)) {
+        States::toggleIndex(&scene.activeSpotLights, 0); // toggle spot light
+    }
+
+    // launch sphere
+    if (Keyboard::keyWentDown(GLFW_KEY_F)) {
+        launchItem(dt);
+    }
+
+    // emit ray
+    if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_1)) {
+        emitRay();
+    }
+
+    // determine if each lamp should be toggled
+    for (int i = 0; i < 4; i++) {
+        if (Keyboard::keyWentDown(GLFW_KEY_1 + i)) {
+            //States::toggleIndex(&scene.activePointLights, i);
+        }
+    }
 }

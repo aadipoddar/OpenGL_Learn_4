@@ -1,69 +1,70 @@
 #include "joystick.h"
 
-Joystick::Joystick ( int i )
-{
-	id = getId ( i );
+/*
+    constructor
+*/
 
-	update ( );
+// generate an instance for joystick with id i
+Joystick::Joystick(int i) {
+    id = getId(i);
+
+    update();
 }
 
-void Joystick::update ( )
-{
-	present = glfwJoystickPresent ( id );
+// update the joystick's states
+void Joystick::update() {
+    present = glfwJoystickPresent(id);
 
-	if ( present )
-	{
-		name = glfwGetJoystickName ( id );
-		axes = glfwGetJoystickAxes ( id , &axesCount );
-		buttons = glfwGetJoystickButtons ( id , &buttonCount );
-	}
+    if (present) {
+        name = glfwGetJoystickName(id);
+        axes = glfwGetJoystickAxes(id, &axesCount);
+        buttons = glfwGetJoystickButtons(id, &buttonCount);
+    }
 }
 
-float Joystick::axesState ( int axis )
-{
-	if ( present )
-	{
-		return axes [ axis ];
-	}
+/*
+    accessors
+*/
 
-	return -1;
+// get axis value
+float Joystick::axesState(int axis) {
+    if (present) {
+        return axes[axis];
+    }
+
+    return -1;
 }
 
-unsigned char Joystick::buttonState ( int button )
-{
-	if ( present )
-	{
-		return buttons [ button ];
-	}
+// get button state
+unsigned char Joystick::buttonState(int button) {
+    if (present) {
+        return buttons[button];
+    }
 
-	return GLFW_RELEASE;
+    return GLFW_RELEASE;
 }
 
-int Joystick::getAxesCount ( )
-{
-	return axesCount;
+// get number of axes
+int Joystick::getAxesCount() {
+    return axesCount;
 }
 
-int Joystick::getButtonCount ( )
-{
-	return buttonCount;
+// get number of buttons
+int Joystick::getButtonCount() {
+    return buttonCount;
 }
 
-bool Joystick::isPresent ( )
-{
-	return present;
+// return if joystick present
+bool Joystick::isPresent() {
+    return present;
 }
 
-const char * Joystick::getName ( )
-{
-	return name;
+// get name of joystick
+const char* Joystick::getName() {
+    return name;
 }
 
-int Joystick::getId ( int i )
-{
-	switch ( i )
-	{
-	case 0: return GLFW_JOYSTICK_1;
-	default: return -1;
-	};
+// static method to get enum value for joystick
+int Joystick::getId(int i) {
+    return GLFW_JOYSTICK_1 + i;
 }

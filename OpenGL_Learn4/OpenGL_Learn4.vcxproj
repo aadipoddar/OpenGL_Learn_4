@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\io\screen.cpp" />
     <ClCompile Include="src\io\camera.cpp" />
     <ClCompile Include="src\io\joystick.cpp" />
@@ -158,14 +159,50 @@
     <ClCompile Include="lib\glad.c" />
     <ClCompile Include="lib\stb.cpp" />
     <ClCompile Include="src\io\mouse.cpp" />
+    <ClCompile Include="src\linalg.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\physics\collisionmesh.cpp" />
+    <ClCompile Include="src\physics\collisionmodel.cpp" />
+    <ClCompile Include="src\physics\environment.cpp" />
+    <ClCompile Include="src\physics\rigidbody.cpp" />
+    <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\fragment_core.glsl" />
-    <None Include="assets\fragment_core_2.glsl" />
-    <None Include="assets\test.glsl" />
-    <None Include="assets\vertex_core.glsl" />
+    <None Include="assets\models\lotr_troll\scene.bin" />
+    <None Include="assets\models\lotr_troll\scene.gltf" />
+    <None Include="assets\models\m4a1\scene.bin" />
+    <None Include="assets\models\m4a1\scene.gltf" />
+    <None Include="assets\models\sphere\scene.bin" />
+    <None Include="assets\models\sphere\scene.gltf" />
+    <None Include="assets\object.fs" />
+    <None Include="assets\object.vs" />
+    <None Include="assets\shaders\buffer.fs" />
+    <None Include="assets\shaders\buffer.vs" />
+    <None Include="assets\shaders\defaultHead.gh" />
+    <None Include="assets\shaders\depth.fs" />
+    <None Include="assets\shaders\instanced\box.fs" />
+    <None Include="assets\shaders\instanced\box.vs" />
+    <None Include="assets\shaders\instanced\instanced.vs" />
+    <None Include="assets\shaders\lamp.fs" />
+    <None Include="assets\shaders\object.fs" />
+    <None Include="assets\shaders\object.vs" />
+    <None Include="assets\shaders\outline.fs" />
+    <None Include="assets\shaders\outline.vs" />
+    <None Include="assets\shaders\shadows\dirShadow.fs" />
+    <None Include="assets\shaders\shadows\dirSpotShadow.vs" />
+    <None Include="assets\shaders\shadows\pointShadow.gs" />
+    <None Include="assets\shaders\shadows\pointShadow.vs" />
+    <None Include="assets\shaders\shadows\pointSpotShadow.fs" />
+    <None Include="assets\shaders\test.vs" />
+    <None Include="assets\shaders\text.fs" />
+    <None Include="assets\shaders\text.vs" />
+    <None Include="assets\skybox\sky.fs" />
+    <None Include="assets\skybox\skybox.fs" />
+    <None Include="assets\skybox\skybox.vs" />
+    <None Include="assimp-vc142-mtd.dll" />
+    <None Include="freetype.dll" />
+    <None Include="glfw3.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\io\screen.h" />
@@ -173,11 +210,44 @@
     <ClInclude Include="src\io\joystick.h" />
     <ClInclude Include="src\io\keyboard.h" />
     <ClInclude Include="src\io\mouse.h" />
+    <ClInclude Include="src\linalg.h" />
+    <ClInclude Include="src\physics\collisionmesh.h" />
+    <ClInclude Include="src\physics\collisionmodel.h" />
+    <ClInclude Include="src\physics\environment.h" />
+    <ClInclude Include="src\physics\rigidbody.h" />
+    <ClInclude Include="src\scene.h" />
     <ClInclude Include="src\Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\image1.jpg" />
     <Image Include="assets\image2.png" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_pants_baseColor.png" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_pants_metallicRoughness.png" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_pants_normal.png" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_baseColor.jpeg" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_emissive.jpeg" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_metallicRoughness.png" />
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_normal.png" />
+    <Image Include="assets\skybox\back.png" />
+    <Image Include="assets\skybox\bottom.png" />
+    <Image Include="assets\skybox\front.png" />
+    <Image Include="assets\skybox\left.png" />
+    <Image Include="assets\skybox\right.png" />
+    <Image Include="assets\skybox\skybox_template.png" />
+    <Image Include="assets\skybox\top.png" />
+    <Image Include="assets\textures\brickwall_diffuse.jpg" />
+    <Image Include="assets\textures\brickwall_normal.jpg" />
+    <Image Include="assets\textures\brickwall_specular.jpg" />
+    <Image Include="assets\textures\flag.png" />
+    <Image Include="assets\textures\flag_specular.png" />
+    <Image Include="assets\textures\image1.jpg" />
+    <Image Include="assets\textures\image2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="assets\fonts\comic.ttf" />
+    <Font Include="assets\fonts\comicbd.ttf" />
+    <Font Include="assets\fonts\comici.ttf" />
+    <Font Include="assets\fonts\comicz.ttf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

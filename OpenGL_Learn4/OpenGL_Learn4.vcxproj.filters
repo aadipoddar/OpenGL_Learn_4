@@ -42,12 +42,69 @@
     <ClCompile Include="src\io\screen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\physics\collisionmesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\physics\collisionmodel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\physics\environment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\physics\rigidbody.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\linalg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\vertex_core.glsl" />
-    <None Include="assets\fragment_core.glsl" />
-    <None Include="assets\fragment_core_2.glsl" />
-    <None Include="assets\test.glsl" />
+    <None Include="assets\object.vs" />
+    <None Include="assets\object.fs" />
+    <None Include="assets\skybox\sky.fs" />
+    <None Include="assets\skybox\skybox.fs" />
+    <None Include="assets\skybox\skybox.vs" />
+    <None Include="assets\shaders\buffer.fs" />
+    <None Include="assets\shaders\buffer.vs" />
+    <None Include="assets\shaders\defaultHead.gh" />
+    <None Include="assets\shaders\depth.fs" />
+    <None Include="assets\shaders\lamp.fs" />
+    <None Include="assets\shaders\object.fs" />
+    <None Include="assets\shaders\object.vs" />
+    <None Include="assets\shaders\outline.fs" />
+    <None Include="assets\shaders\outline.vs" />
+    <None Include="assets\shaders\test.vs" />
+    <None Include="assets\shaders\text.fs" />
+    <None Include="assets\shaders\text.vs" />
+    <None Include="assets\shaders\shadows\dirShadow.fs" />
+    <None Include="assets\shaders\shadows\dirSpotShadow.vs" />
+    <None Include="assets\shaders\shadows\pointShadow.gs" />
+    <None Include="assets\shaders\shadows\pointShadow.vs" />
+    <None Include="assets\shaders\shadows\pointSpotShadow.fs" />
+    <None Include="assets\shaders\instanced\box.fs" />
+    <None Include="assets\shaders\instanced\box.vs" />
+    <None Include="assets\shaders\instanced\instanced.vs" />
+    <None Include="assets\models\lotr_troll\scene.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\models\m4a1\scene.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\models\sphere\scene.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\models\lotr_troll\scene.gltf" />
+    <None Include="assets\models\sphere\scene.gltf" />
+    <None Include="assets\models\m4a1\scene.gltf" />
+    <None Include="assimp-vc142-mtd.dll" />
+    <None Include="freetype.dll" />
+    <None Include="glfw3.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Shader.h">
@@ -68,6 +125,24 @@
     <ClInclude Include="src\io\screen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\physics\collisionmesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\collisionmodel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\environment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\rigidbody.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\linalg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\image1.jpg">
@@ -76,5 +151,74 @@
     <Image Include="assets\image2.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="assets\textures\brickwall_diffuse.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\brickwall_normal.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\brickwall_specular.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\flag.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\flag_specular.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\image1.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\image2.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\back.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\bottom.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\front.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\left.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\right.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\skybox_template.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\skybox\top.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_pants_baseColor.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_pants_metallicRoughness.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_pants_normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_baseColor.jpeg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_emissive.jpeg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_metallicRoughness.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\models\lotr_troll\textures\TEX_Troll_normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="assets\fonts\comicz.ttf" />
+    <Font Include="assets\fonts\comic.ttf" />
+    <Font Include="assets\fonts\comicbd.ttf" />
+    <Font Include="assets\fonts\comici.ttf" />
   </ItemGroup>
 </Project>
